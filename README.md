@@ -16,10 +16,14 @@ This token is the ID of your EEU account. It expires 15 minutes after being gene
 
 To generate this token, while on the EEU page press F12 to enter Developer Tools, then go to Storage > Cookies > https://ee-universe.com. The token is the string next to where it says "token".
 
+![EEU Token](img/eeutoken.png)
+
 ## 2. Google auth cookie / token
 This cookie can be used to authenticate to your Google account, and it expires 1 month after being generated. It is imperative that you NEVER let someone else have access to your Google token, since if they know what they're doing they can get full access to your whole Google account!
 
 To generate this token, press F12 to enter Developer Tools and then reload the page. Wait for the game to load, then press on the Network tab and search for "iframe". Click on the accounts.google.com option and a new window with headers will show up. Scroll down to "Request Headers". The token / cookie is the value of the "Cookie" variable.
+
+![Google Token](img/googletoken.png)
 
 After you copied your token, paste it in the terminal and press the ENTER key.
 
