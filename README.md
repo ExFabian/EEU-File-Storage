@@ -41,7 +41,9 @@ dotnet build ProjectFile.csproj
 As a sidenote, if you want to look through my code or even contribute to the project, I am a beginner programmer so the code I made might be horrible. It would be appreciate it though if you have some advice for me on how I can improve my code :)
 
 # How it works
-The mechanism is very simple, literally just store the bytes of the file in the world using signs. Since the max number of characters in a sign is 120, we can store up to 60 bytes in one sign. It would be possible to fit more bytes in a block by using higher number bases than hex, or using different sign orientations, colors and bg blocks to represent different bits, however I didn't feel like going through that hassle. I might revisit this in the future, though. With the current method, in the biggest world ever offered by this game (600x400), you can store 600 * 400 * 60 bytes (in the real deal we're subtracting 60 because one sign is used for storing the file name and the MD5 hash of the file), which amounts to the grant total of 14,400,000 bytes, or 14.4 megabytes... Not much at all, but you can at least store a couple of cat pictures in a zip file, or 5 copies of DOOM (1993).
+The mechanism is very simple, literally just store the bytes of the file in the world using signs. Since the max number of characters in a sign is 120, we can store up to 60 bytes in one sign. It would be possible to fit more bytes in a block by using higher number bases than hex, or using different sign orientations, colors and bg blocks to represent different bits, however I didn't feel like going through that hassle. I might revisit this in the future, though. 
+
+With the current method, in the biggest world ever offered by this game (600x400), you can store 600 * 400 * 60 bytes (in the real deal we're subtracting 60 because one sign is used for storing the file name and the MD5 hash of the file), which amounts to the grant total of 14,400,000 bytes, or 14.4 megabytes... Not much at all, but you can at least store a couple of cat pictures in a zip file, or 5 copies of DOOM (1993).
 
 Other common world sizes include:
 - 50x50 - 150000 bytes (150KB)
