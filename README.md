@@ -1,4 +1,7 @@
 # EEU File Storage
+
+![EEUFS in action](img/eeufs.png)
+
 A bot for the game Everybody Edits Universe that lets you write files into worlds and later read them back onto your device, using the game as free file storage! Sadly, it's not very useful storage, as the biggest world size of 600x400 can store only up to... ~14.4 MB. Which is not alot.
 
 This project was inspired by [DvorakDwarf's](https://github.com/DvorakDwarf) [Infinite Storage Glitch](https://github.com/DvorakDwarf/Infinite-Storage-Glitch) which is basically the same thing but with YouTube videos
