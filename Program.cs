@@ -88,8 +88,9 @@ namespace eeuthingy
             var connection = client.CreateWorldConnection(worldId);
             bool connected = false;
 
-            var botId = -1; var worldWidth = 0; var worldHeight = 0;
-            const int maxBytes = 60; //max characters in a sign in 120, bytes can be represented by up to 2 characters so we have a max of 60 bytes per sign
+            var botId = -1; var worldWidth = 0; var worldHeight = 0; //max characters in a sign in 120, bytes can be represented by up to 2 characters so we have a max of 60 bytes per sign
+            const int maxChars = 120; //max characters in a sign is 120
+            const int maxBytes = maxChars * 6 / 8; //in base64 a character represents 6 bits, so we can hold up to maxChars * 6 [bits] * 8 [bits in a byte] bytes in a sign.
             const int maxNameLength = 85;
             const string outPath = "out/";
             Block[,] World = {};
@@ -335,20 +336,23 @@ namespace eeuthingy
                         Array.Copy(bytes, i, line, 0, cnt);
                     }
 
-                    var byteIndex = 0;
+                    var base64Encode = System.Convert.ToBase64String(bytes);
+
+                    var writeIndex = 0;
                     var signX = 1; var signY = 0;
-                    while (byteIndex < bytes.Length)
+                    var encodeLength = base64Encode.Length;
+                    while (writeIndex < encodeLength)
                     {
-                        var i = 0;
-                        var byteString = "";
-                        while (i < bytes.Length - byteIndex && i < maxBytes)
-                        {
-                            byteString += $"{bytes[byteIndex + i]:X2}";
-                            i++;
-                        }
-                        await connection.SendAsync(MessageType.PlaceBlock, 1, signX, signY, 55, byteString);
-                        World[signX, signY] = new Block(55, byteString);
-                        byteIndex += i;
+                        var writeString = "";
+                        if (encodeLength - writeIndex < maxChars)
+                            writeString = base64Encode.Substring(writeIndex, encodeLength - writeIndex);
+                        else
+                            writeString = base64Encode.Substring(writeIndex, maxChars);
+
+                        writeIndex += maxChars;
+
+                        await connection.SendAsync(MessageType.PlaceBlock, 1, signX, signY, 55, writeString);
+                        World[signX, signY] = new Block(55, writeString);
                         signX++;
                         if (signX >= worldWidth)
                         {
@@ -372,6 +376,7 @@ namespace eeuthingy
                 string[] param = chatMsg.Split();
 
                 Regex rg = new Regex("[^0-9A-F]+"); //checks if a string contains characters not used to represent hex numbers
+                Regex base64Rg = new Regex("[^0-9a-zA-Z+\\/=]+"); //checks if a string contains characters not used to represent base64 numbers
                 Regex nameRg = new Regex("[\\\\\\/:\\*\\?\\\"<>\\|]+"); //checks for characters that can't be in a file name
 
                 bool skipInfo = false;
@@ -442,7 +447,7 @@ namespace eeuthingy
                     }
                     if (nameRg.IsMatch(infoParam[0]))
                     {
-                        Chat($"read: File name contains invalid characters. Try removing the invalid characters in the blue sign. Otherwise, use !read -i [new file name] to ignore this warning.");
+                        Chat($"read: File name contains invalid characters. Use !read -i [new file name] to ignore this warning.");
                         return;
                     }
                     if (infoParam[1].Length != 32)
@@ -476,21 +481,21 @@ namespace eeuthingy
                     var fileLen = (int)fs.Length;
                     var signX = 1; var signY = 0;
                     bool errors = false;
-                    var byteString = ""; var prevByteString = "";
+                    var base64String = ""; var prevBase64String = "";
                     List<byte> bytes = new List<byte>(); //used for checking md5 hash
 
-                    while (World[signX, signY].id == 55 && signY < worldHeight)
+                    while (World[signX, signY].id == 55 && signY < worldHeight && !base64String.Contains('='))
                     {
-                        prevByteString = byteString;
-                        byteString = World[signX, signY].text;
+                        prevBase64String = base64String;
+                        base64String = World[signX, signY].text;
 
-                        if (rg.IsMatch(byteString) || byteString.Length % 2 == 1)
+                        if (base64Rg.IsMatch(base64String) || base64String.Length % 4 != 0)
                         {
                             Chat($"read: Invalid sign content, stopping. The file created may be corrupted. x = {signX}, y = {signY}");
                             return;
                         }
 
-                        if (prevByteString.Length < maxBytes * 2 && (signX > 1 || signY > 0))
+                        if (prevBase64String.Length < maxChars && (signX > 1 || signY > 0))
                         {
                             var errX = signX - 1; var errY = signY;
                             if (errX < 0)
@@ -498,14 +503,21 @@ namespace eeuthingy
                                 errX = worldWidth - 1;
                                 errY--;
                             }
-                            Chat($"read: Warning: Sign containing less than {maxBytes * 2} bytes detected before end of file. The file created may be corrupted. x = {errX}, y = {errY}, length: {prevByteString.Length}");
+                            Chat($"read: Warning: Sign containing less than {maxChars} characters detected before end of file. The file created may be corrupted. x = {errX}, y = {errY}, length: {prevBase64String.Length}");
                             errors = true;
                         }
 
-                        byte[] curBytes = Convert.FromHexString(byteString);
-                        if(!skipInfo)
-                            bytes.AddRange(curBytes);
-                        bw.Write(curBytes);
+                        try {
+                            byte[] curBytes = Convert.FromBase64String(base64String);
+                            if (!skipInfo)
+                                bytes.AddRange(curBytes);
+                            bw.Write(curBytes);
+                        }
+                        catch (Exception) //too lazy to check for bad base64 strings myself, this will do
+                        {
+                            Chat($"read: Invalid sign content, stopping. The file created may be corrupted. x = {signX}, y = {signY}");
+                            return;
+                        }
 
                         signX++;
                         if (signX >= worldWidth)
@@ -543,8 +555,9 @@ namespace eeuthingy
                 var fileSize = 0;
                 var fileName = "";
                 Regex rg = new Regex("[^0-9A-F]+");
+                Regex base64Rg = new Regex("[^0-9a-zA-Z+\\/=]+");
                 Regex nameRg = new Regex("[\\\\\\/:\\*\\?\\\"<>\\|]+");
-                var byteString = ""; var prevByteString = "";
+                var base64String = ""; var prevBase64String = "";
                 var MD5Hash = "";
                 List<byte> bytes = new List<byte>(); //used for checking md5 hash
 
@@ -594,27 +607,28 @@ namespace eeuthingy
                     }
                 }
 
-                while (World[signX, signY].id == 55 && signY < worldHeight)
+                while (World[signX, signY].id == 55 && signY < worldHeight && !base64String.Contains('='))
                 {
-                    prevByteString = byteString;
-                    byteString = World[signX, signY].text;
-                    if (rg.IsMatch(byteString))
+                    prevBase64String = base64String;
+                    base64String = World[signX, signY].text;
+                    if (base64Rg.IsMatch(base64String))
                     {
                         Chat($"verify: Detected sign that contains invalid characters, reading will fail. x = {signX}, y = {signY}");
                         success = 0;
                     }
-                    if (byteString.Length % 2 == 1)
+                    if (base64String.Length % 4 != 0)
                     {
-                        Chat($"verify: Detected sign that contains odd number of bits, reading will fail. x = {signX}, y = {signY}");
+                        Chat($"verify: Detected sign that contains an invalid number of characters, reading will fail. x = {signX}, y = {signY}");
                         success = 0;
                     }
-                    if (byteString.Length == 0)
+                    if (base64String.Length == 0)
                     {
                         Chat($"verify: Detected empty sign. Reading may result in a corrupted file. x = {signX}, y = {signY}");
                         if (success > 0)
                             success = 2;
                     }
-                    if (prevByteString.Length < maxBytes * 2 && (signX > 1 || signY > 0))
+
+                    if (prevBase64String.Length < maxChars && (signX > 1 || signY > 0))
                     {
                         var errX = signX - 1; var errY = signY;
                         if (errX < 0)
@@ -622,13 +636,27 @@ namespace eeuthingy
                             errX = worldWidth - 1;
                             errY--;
                         }
-                        Chat($"verify: Sign containing less than {maxBytes * 2} bytes detected before end of file. Reading may result in a corrupted file. x = {errX}, y = {errY}, length: {prevByteString.Length}");
+                        Chat($"verify: Sign containing less than {maxChars} characters detected before end of file. Reading may result in a corrupted file. x = {errX}, y = {errY}, length: {prevBase64String.Length}");
                         if (success > 0)
                             success = 2;
                     }
 
-                    bytes.AddRange(Convert.FromHexString(byteString));
-                    fileSize += byteString.Length / 2;
+                    if (success > 0)
+                    {
+                        try {
+                            bytes.AddRange(Convert.FromBase64String(base64String));
+                            fileSize += base64String.Length * 6 / 8;
+                            if (base64String.Contains("=="))
+                                fileSize -= 2;
+                            else if (base64String.Contains('='))
+                                fileSize -= 1;
+                        }
+                        catch(Exception)
+                        {
+                            Chat($"verify: Detected sign that has an invalid format, reading will fail. x = {signX}, y = {signY}");
+                            success = 0;
+                        }
+                    }
 
                     signX++;
                     if (signX >= worldWidth)
@@ -638,22 +666,21 @@ namespace eeuthingy
                     }
                 }
 
-                var readMD5Hash = "";
-                using (MD5 md5 = MD5.Create())
-                    readMD5Hash = Convert.ToHexString(md5.ComputeHash(bytes.ToArray()));
-
-                if (success > 0 && infoSuccess)
+                if (success > 0)
                 {
-                    if (MD5Hash != readMD5Hash)
-                    {
-                        Chat($"verify: MD5 hash mismatch! File has been modified or corrupted. (Stored hash: {MD5Hash}, actual hash: {readMD5Hash})");
+                    var readMD5Hash = "";
+                    using (MD5 md5 = MD5.Create())
+                        readMD5Hash = Convert.ToHexString(md5.ComputeHash(bytes.ToArray()));
+                    if (infoSuccess)
+                        if (MD5Hash != readMD5Hash)
+                        {
+                            Chat($"verify: MD5 hash mismatch! File has been modified or corrupted. (Stored hash: {MD5Hash}, actual hash: {readMD5Hash})");
+                            MD5Hash = readMD5Hash;
+                            success = 2;
+                        }
+                    else
                         MD5Hash = readMD5Hash;
-                        success = 2;
-                    }
                 }
-
-                if (!infoSuccess)
-                    MD5Hash = readMD5Hash;
 
                 if (fileName.Length > 50)
                 {
