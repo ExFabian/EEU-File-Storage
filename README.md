@@ -2,7 +2,7 @@
 
 ![EEUFS in action](img/eeufs.png)
 
-A bot for the game Everybody Edits Universe that lets you write files into worlds and later read them back onto your device, using the game as free file storage! Sadly, it's not very useful storage, as the biggest world size of 600x400 can store only up to... ~14.4 MB. Which is not alot.
+A bot for the game Everybody Edits Universe that lets you write files into worlds and later read them back onto your device, using the game as free file storage! Sadly, it's not very useful storage, as the biggest world size of 600x400 can store only up to... ~21.5 MB. Which is not alot.
 
 This project was inspired by [DvorakDwarf's](https://github.com/DvorakDwarf) [Infinite Storage Glitch](https://github.com/DvorakDwarf/Infinite-Storage-Glitch) which is basically the same thing but with YouTube videos
 instead of EEU worlds.
@@ -48,11 +48,11 @@ dotnet build ProjectFile.csproj
 As a sidenote, if you want to look through my code or even contribute to the project, I am a beginner programmer so the code I made might be horrible. It would be appreciate it though if you have some advice for me on how I can improve my code :)
 
 # How it works
-The mechanism is very simple, literally just store the bytes of the file in the world using signs. Since the max number of characters in a sign is 120, we can store up to 60 bytes in one sign. It would be possible to fit more bytes in a block by using higher number bases than hex, or using different sign orientations, colors and bg blocks to represent different bits, however I didn't feel like going through that hassle. I might revisit this in the future, though. 
+The mechanism is very simple, literally just store the bytes of the file, encoded in base64, in the world using signs. Since the max number of characters in a sign is 120, and because base64 can store up to 6 bits in a character, we can store up to 90 bytes in one sign. It would be possible to fit more bytes in a block by using different sign orientations, colors and bg blocks to represent different bits, however I didn't feel like going through that hassle. I might revisit this in the future, though. 
 
-With the current method, in the biggest world ever offered by this game (600x400), you can store 600 * 400 * 60 bytes (in the real deal we're subtracting 60 because one sign is used for storing the file name and the MD5 hash of the file), which amounts to the grant total of 14,400,000 bytes, or 14.4 megabytes... Not much at all, but you can at least store a couple of cat pictures in a zip file, or 5 copies of DOOM (1993).
+With the current method, in the biggest world ever offered by this game (600x400), you can store 600 * 400 * 90 bytes (in the real deal we're subtracting 90 because one sign is used for storing the file name and the MD5 hash of the file), which amounts to the grant total of 21,600,000 bytes, or 21.6 megabytes... Not much at all, but you can at least store a couple of cat pictures in a zip file, or 8 copies of DOOM (1993).
 
 Other common world sizes include:
-- 50x50 - 150000 bytes (150KB)
-- 100x100 - 600000 bytes (600KB)
-- 200x200 - 2400000 bytes (2.4MB)
+- 50x50 - 225000 bytes (225KB)
+- 100x100 - 900000 bytes (900KB)
+- 200x200 - 3600000 bytes (3.6MB)
