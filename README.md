@@ -1,3 +1,5 @@
+### (13 September 2025) Archived because EEU servers have been down since the 29th of July, which lets me to believe the game has shut down. More info: https://forums.everybodyedits.com/viewtopic.php?id=48057
+
 # EEU File Storage
 
 ![EEUFS in action](img/eeufs.png)
